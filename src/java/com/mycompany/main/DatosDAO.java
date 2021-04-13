@@ -5,11 +5,10 @@ import com.mycompany.main.crud.IDatosArchivo;
 import com.mycompany.main.crud.datoArchivo;
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.util.ArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -18,24 +17,11 @@ import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
-import javax.xml.transform.Result;
-import javax.xml.transform.Source;
-import javax.xml.transform.Transformer;
-import javax.xml.transform.TransformerConfigurationException;
-import javax.xml.transform.TransformerException;
-import javax.xml.transform.TransformerFactory;
-import javax.xml.transform.dom.DOMSource;
-import javax.xml.transform.stream.StreamResult;
+import org.json.JSONException;
+import org.json.XML;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
-import org.w3c.dom.DOMImplementation;
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
-import org.w3c.dom.Text;
 
 @WebServlet("/recibir")
 public class DatosDAO extends HttpServlet {
@@ -49,6 +35,7 @@ public class DatosDAO extends HttpServlet {
     }
 
     protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+
         PrintWriter out = response.getWriter();
 
         String file = request.getParameter("archivo");
@@ -90,19 +77,29 @@ public class DatosDAO extends HttpServlet {
                                     arreglo_datos = linea.split(":");
                                     archivo = new datoArchivo(usu, cla, date, nomFile, ext);
                                     dao.registrar(archivo);
-                                } else {
                                     out.println("<html>");
                                     out.println("<head></head>");
                                     out.println("<body>");
-                                    out.println("Archivo invalido");
-                                    out.println("<br>");
                                     out.println("<a href=\"/TNCol/\">Volver al inicio</a>");
+                                    out.println("<br>");
+                                    out.println("<br>");
+                                    out.println("<a download=\"TNCol\" href=" + file + ">Descargar</a>");
                                     out.println("</body>");
                                     out.println("</html>");
                                 }
                             }
                         }
                     }
+                } else {
+                    out.println("<html>");
+                    out.println("<head></head>");
+                    out.println("<body>");
+                    out.println("Archivo invalido");
+                    out.println("<br>");
+                    out.println("<a href=\"/TNCol/\">Volver al inicio</a>");
+                    out.println("</body>");
+                    out.println("</html>");
+                    break;
                 }
             }
         }
@@ -117,82 +114,36 @@ public class DatosDAO extends HttpServlet {
                 nomFile = (String) jsonObject.get("archivo");
                 archivo = new datoArchivo(usu, cla, date, nomFile, ext);
                 dao.registrar(archivo);
-                try {
-                    // Creo una instancia de DocumentBuilderFactory
-                    DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-                    // Creo un documentBuilder
-                    DocumentBuilder builder = factory.newDocumentBuilder();
-                    // Creo un DOMImplementation
-                    DOMImplementation implementation = builder.getDOMImplementation();
+                try (FileWriter fileWriter = new FileWriter("Intento.xml")) {
+                    fileWriter.write(XML.toString(jsonObject));
+                    System.out.println("" + XML.toString(jsonObject));
+                } catch (JSONException ex) {
+                    Logger.getLogger(DatosDAO.class.getName()).log(Level.SEVERE, null, ex);
+                }
+                if (archivo.getNombre() != null) {
+                    out.println("<html>");
+                    out.println("<head></head>");
+                    out.println("<body>");
+                    out.println("<br>");
+                    out.println("<a href=\"/TNCol/\">Volver al inicio</a>");
+                    out.println("<br>");
+                    out.println("<br>");
+                    out.println("<a download=\"TNCol\" href=" + file + ">Descargar</a>");
+                    out.println("</body>");
+                    out.println("</html>");
 
-                    // Creo un documento con un elemento raiz
-                    Document documento = implementation.createDocument(null, "concesionario", null);
-                    documento.setXmlVersion("1.0");
-
-                    // Creo los elementos
-                    Element coches = documento.createElement("coches");
-                    Element coche = documento.createElement("coche");
-
-                    // Matricula
-                    Element matricula = documento.createElement("matricula");
-                    Text textMatricula = documento.createTextNode("1111AAA");
-                    matricula.appendChild(textMatricula);
-                    coche.appendChild(matricula);
-
-                    // Marca
-                    Element marca = documento.createElement("marca");
-                    Text textMarca = documento.createTextNode("AUDI");
-                    marca.appendChild(textMarca);
-                    coche.appendChild(marca);
-
-                    // Precio
-                    Element precio = documento.createElement("precio");
-                    Text textPrecio = documento.createTextNode("30000");
-                    precio.appendChild(textPrecio);
-                    coche.appendChild(precio);
-
-                    // Añado al elemento coches el elemento coche
-                    coches.appendChild(coche);
-
-                    // Añado al root el elemento coches
-                    documento.getDocumentElement().appendChild(coches);
-
-                    // Asocio el source con el Document
-                    Source source = new DOMSource(documento);
-                    // Creo el Result, indicado que fichero se va a crear
-                    Result result = new StreamResult(new File("concesionario.xml"));
-
-                    // Creo un transformer, se crea el fichero XML
-                    Transformer transformer = TransformerFactory.newInstance().newTransformer();
-                    transformer.transform(source, result);
-
-                } catch (ParserConfigurationException | TransformerException ex) {
-                    System.out.println(ex.getMessage());
+                } else {
+                    out.println("<html>");
+                    out.println("<head></head>");
+                    out.println("<body>");
+                    out.println("Archivo invalido");
+                    out.println("<br>");
+                    out.println("<a href=\"/TNCol/\">Volver al inicio</a>");
+                    out.println("</body>");
+                    out.println("</html>");
                 }
             } catch (ParseException ex) {
                 Logger.getLogger(DatosDAO.class.getName()).log(Level.SEVERE, null, ex);
-            }
-            if (archivo.getNombre() != null) {
-                out.println("<html>");
-                out.println("<head></head>");
-                out.println("<body>");
-                out.println("<br>");
-                out.println("<a href=\"/TNCol/\">Volver al inicio</a>");
-                out.println("<br>");
-                out.println("<br>");
-                out.println("<a download=\"TNCol\" href=" + file + ">Descargar</a>");
-                out.println("</body>");
-                out.println("</html>");
-
-            } else {
-                out.println("<html>");
-                out.println("<head></head>");
-                out.println("<body>");
-                out.println("Archivo invalido");
-                out.println("<br>");
-                out.println("<a href=\"/TNCol/\">Volver al inicio</a>");
-                out.println("</body>");
-                out.println("</html>");
             }
         }
     }
